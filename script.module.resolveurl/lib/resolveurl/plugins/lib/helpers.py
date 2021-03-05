@@ -19,7 +19,7 @@ import re
 import xbmcgui
 from resolveurl.plugins.lib import jsunpack
 import six
-from six.moves import urllib_parse
+from six.moves import urllib_parse, urllib_request
 from resolveurl import common
 from resolveurl.resolver import ResolverError
 
@@ -144,15 +144,14 @@ def scrape_sources(html, result_blacklist=None, scheme='http', patterns=None, ge
             match = r.groupdict()
             stream_url = match['url'].replace('&amp;', '&')
             file_name = urllib_parse.urlparse(stream_url[:-1]).path.split('/')[-1] if stream_url.endswith("/") else urllib_parse.urlparse(stream_url).path.split('/')[-1]
-            blocked = not file_name or any(item in file_name.lower() for item in _blacklist)
+            label = match.get('label', file_name)
+            if label is None:
+                label = file_name
+            blocked = not file_name or any(item in file_name.lower() for item in _blacklist) or any(item in label for item in _blacklist)
             if stream_url.startswith('//'):
                 stream_url = scheme + ':' + stream_url
             if '://' not in stream_url or blocked or (stream_url in streams) or any(stream_url == t[1] for t in source_list):
                 continue
-
-            label = match.get('label', file_name)
-            if label is None:
-                label = file_name
             labels.append(label)
             streams.append(stream_url)
 
@@ -188,7 +187,7 @@ def scrape_sources(html, result_blacklist=None, scheme='http', patterns=None, ge
     return source_list
 
 
-def get_media_url(url, result_blacklist=None, patterns=None, generic_patterns=True):
+def get_media_url(url, result_blacklist=None, patterns=None, generic_patterns=True, referer=True):
     if patterns is None:
         patterns = []
     scheme = urllib_parse.urlparse(url).scheme
@@ -200,14 +199,16 @@ def get_media_url(url, result_blacklist=None, patterns=None, generic_patterns=Tr
     result_blacklist = list(set(result_blacklist + ['.smil']))  # smil(not playable) contains potential sources, only blacklist when called from here
     net = common.Net()
     headers = {'User-Agent': common.RAND_UA}
-    headers.update({'Referer': url})
+    if referer:
+        headers.update({'Referer': url})
     response = net.http_GET(url, headers=headers)
     response_headers = response.get_headers(as_dict=True)
     cookie = response_headers.get('Set-Cookie', None)
     if cookie:
         headers.update({'Cookie': cookie})
     html = response.content
-
+    if not referer:
+        headers.update({'Referer': url})
     source_list = scrape_sources(html, result_blacklist, scheme, patterns, generic_patterns)
     source = pick_source(source_list)
     return source + append_headers(headers)
@@ -294,3 +295,56 @@ def fun_decode(vu, lc, hr='16'):
             vup[7] = uhash + nchash
         vu = '/'.join(vup[2:]) + '&rnd={}'.format(int(time.time() * 1000))
     return vu
+
+
+def get_redirect_url(url, headers={}):
+    request = urllib_request.Request(url, headers=headers)
+    request.get_method = lambda: 'HEAD'
+    response = urllib_request.urlopen(request)
+    return response.geturl()
+
+
+def girc(page_data, url, co):
+    """
+    Code adapted from https://github.com/vb6rocod/utils/
+    Copyright (C) 2019 vb6rocod
+    and https://github.com/addon-lab/addon-lab_resolver_Project
+    Copyright (C) 2021 ADDON-LAB, KAR10S
+    """
+    net = common.Net()
+    hdrs = {'User-Agent': common.FF_USER_AGENT,
+            'Referer': url}
+    rurl = 'https://www.google.com/recaptcha/api.js'
+    aurl = 'https://www.google.com/recaptcha/api2'
+    key = re.search(r'src="{0}\?.*?render=([^"]+)'.format(rurl), page_data)
+    if key:
+        key = key.group(1)
+        rurl = '{0}?render={1}'.format(rurl, key)
+        page_data1 = net.http_GET(rurl, headers=hdrs).content
+        v = re.findall('releases/([^/]+)', page_data1)[0]
+        rdata = {'ar': 1,
+                 'k': key,
+                 'co': co,
+                 'hl': 'en',
+                 'v': v,
+                 'size': 'invisible',
+                 'cb': '123456789'}
+        page_data2 = net.http_GET('{0}/anchor?{1}'.format(aurl, urllib_parse.urlencode(rdata)), headers=hdrs).content
+        rtoken = re.search('recaptcha-token.+?="([^"]+)', page_data2)
+        if rtoken:
+            rtoken = rtoken.group(1)
+        else:
+            return ''
+        pdata = {'v': v,
+                 'reason': 'q',
+                 'k': key,
+                 'c': rtoken,
+                 'sa': '',
+                 'co': co}
+        hdrs.update({'Referer': aurl})
+        page_data3 = net.http_POST('{0}/reload?k={1}'.format(aurl, key), form_data=pdata, headers=hdrs).content
+        gtoken = re.search('rresp","([^"]+)', page_data3)
+        if gtoken:
+            return gtoken.group(1)
+
+    return ''

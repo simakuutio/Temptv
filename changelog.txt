@@ -2,6 +2,43 @@
 [COLOR gold]If You Would like to Contribute vist https://github.com/Tempest0580/Temptv[/COLOR]
 Repo https://tempest0580.github.io/
 
+2.0.83
+- Fixed UstvGo
+
+2.0.82
+- Fixed UstvGo
+- Updated UstvGo Art
+
+2.0.81
+- Updated UstvGo (Thanks jigoop1)
+- Removed Myustv
+- Added Allsprk
+- Minor Update
+
+2.0.80
+- Updated UstvGo (Thanks jigoop1)
+
+2.0.79
+- Updated Foregin Channels
+- Updated YourSports
+
+2.0.78
+- Fix UstvGo (Thanks Fedevx)
+
+2.0.77
+- Fixed UstvGo
+
+2.0.76
+- Fixed most Foregin Channels for now(Will update soon)
+- Fixed Entertainment Section
+- In the process of updating the free 1 clicks(New sites, hope they stay working)
+
+2.0.75
+- Fixed UstvGo (Thanks Fedevx for the fix)
+
+2.0.74
+- Fixed UstvGo (Thanks Fedevx for the fix)
+
 2.0.73
 - Fixed UstvGo
 

@@ -1,12 +1,15 @@
-Version 5.1.2 (July 7, 2020)
+Version 5.1.22 (January 18, 2021)
 - Code Base Changes:
-    - Fix settings.xml writing on non english systems
+    - None
 
 - Resolvers Added:
-    - Vudeo
+    - jetload
  
 - Resolvers Fixed/Updated:
-    - WStream
+    - videossh
+    - voe.sx
+    - evoload
+    - doodstream
 
 - Resolvers Removed
     - None
